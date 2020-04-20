@@ -110,56 +110,6 @@ export function ModelInputs({height, width, ...remaining}) {
         {location.name}, which is usually reported with a three-day delay.
       </Paragraph>
 
-      <Heading className="margin-top-4">
-        How does social distancing relate to how the virus spreads?
-      </Heading>
-      <Paragraph>
-        Epidemiologists measure how quickly a disease spreads through{' '}
-        <strong>R₀</strong>, its <strong>basic reproduction number</strong>,
-        defined as the number of people a disease will spread to from a single
-        infected person.
-      </Paragraph>
-      <Paragraph>
-        When social distancing measures are introduced, it becomes more
-        difficult for a disease to spread through a population. We represent
-        this using
-        <InlineLabel
-          color={theme.color.magenta[1]}
-          fill={theme.color.magenta[1]}
-        >
-          R<sub>t</sub>
-        </InlineLabel>
-        , the <strong>effective reproduction number</strong>. R<sub>t</sub>{' '}
-        represents how many people a single case of the disease will spread to
-        at a given point in time, taking social distancing measures into
-        account.
-      </Paragraph>
-      <Graph
-        initialScale="linear"
-        tickFormat={formatR}
-        height={height}
-        width={width}
-        xLabel="R"
-        nice={false}
-      >
-        {() => <Line y={rt} stroke={theme.color.magenta[1]} />}
-      </Graph>
-      <Gutter>
-        <LegendRow
-          color={theme.color.magenta[1]}
-          label={
-            <>
-              R<sub>t</sub>
-            </>
-          }
-          y={rt}
-          format={formatR}
-        />
-      </Gutter>
-
-      <Heading className="margin-top-5">
-        How does the model differ between locations?
-      </Heading>
       <Paragraph>
         We use the data available to us — reported positive tests,
         hospitalizations, and fatalities (among others) — to estimate when
@@ -170,9 +120,8 @@ export function ModelInputs({height, width, ...remaining}) {
         We estimate that COVID-19 reached {location.name} on{' '}
         <InlineData width="130px">
           {() => formatDate(dayToDate(importtime()))}
-        </InlineData>{' '}
-        and has an R₀ of <InlineData>{() => formatNumber2(r0())}</InlineData>{' '}
-        when there is no social distancing.
+        </InlineData>
+        .
       </Estimation>
     </div>
   );

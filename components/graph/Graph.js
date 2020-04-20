@@ -24,16 +24,6 @@ const floorLog = (n) =>
 const ceilLog = (n) =>
   sign(n) * pow(10, floor(log10(abs(n)) + (n >= 0 ? 1 : 0)));
 
-const valueTickLabelProps = () => ({
-  dx: '4px',
-  dy: '-4px',
-  textAnchor: 'start',
-  fill: 'var(--color-gray4)',
-  paintOrder: 'stroke',
-  stroke: 'var(--color-background)',
-  strokeWidth: 5,
-});
-
 export const GraphContents = React.memo(function Graph({
   accessors,
   children,
@@ -49,7 +39,6 @@ export const GraphContents = React.memo(function Graph({
   width: propWidth = 600,
   height = 400,
   tickFormat = formatLargeNumber,
-  tickLabelProps = valueTickLabelProps,
   controls = false,
   decoration = true,
   scrubber = true,
