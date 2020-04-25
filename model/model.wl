@@ -1,10 +1,9 @@
 (* ::Package:: *)
 
 (** Model parameters. See https://docs.google.com/spreadsheets/d/1DH58EFf_YkWHa_zn8-onBGzsYFMamjSjOItr137vu9g/edit#gid=0 **)
-SetDirectory[$UserDocumentsDirectory<>"/Github/covidmodel"];
-
 (* In mathematica imported code is executed *)
 (* these load some data from various sources, and generate helper functions for evaluating statistics and generating plots *)
+SetDirectory[$HomeDirectory<>"/github/covid-modelling/cosmc"];
 Import["model/data.wl"];
 Import["model/gof-metrics.wl"];
 Import["model/plot-utils.wl"];

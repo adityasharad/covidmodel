@@ -2,12 +2,11 @@
 
 (* This module gathers data from various sources via API calls and then parses them *)
 (* into the formats required by the model *)
-
-SetDirectory[$UserDocumentsDirectory<>"/Github/covidmodel"];
+SetDirectory[$HomeDirectory<>"/github/covid-modelling/cosmc"];
 
 (* Utils *)
 today=QuantityMagnitude[DateDifference[DateList[{2020,1,1}],Today]];
-dataFile[name_] := $UserDocumentsDirectory <> "/Github/covidmodel/model/data/" <> name;
+dataFile[name_] := $HomeDirectory <> "/github/covid-modelling/cosmc/model/data/" <> name;
 
 (* model predict max/min 1 is Jan 1st 2020 *)
 tmax0 = 365 * 2;
