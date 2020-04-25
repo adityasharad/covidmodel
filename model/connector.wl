@@ -53,7 +53,7 @@ translateInput[inputPath_]:=Module[{
     dateOffset
   ]
 
-  interventionStartDateOffsets = Map[translateDateIntoOffset[#["startDate"]], interventionStartDates];
+  interventionStartDateOffsets = Map[translateDateIntoOffset[#["startDate"]], interventions];
   (* endDate[i] = startDate[i+1] for 1 <= i < len, and endDate[len] = simulation end date *)
   (* interventionEndDateOffsets = Drop[Append[interventionStartDateOffsets, tmax0], 1]; *)
 
