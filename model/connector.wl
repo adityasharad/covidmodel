@@ -127,7 +127,7 @@ translateInput[modelInput_]:=Module[{
 ];
 
 cumulativeToPointwise[cumulativeValues_] := If[
-  Length[cumulativeValues] == 0],
+  Length[cumulativeValues] == 0,
   cumulativeValues,
   Prepend[Differences[cumulativeValues], cumulativeValues[[1]]]
 ];
@@ -147,7 +147,7 @@ translateOutput[modelInput_, stateCode_, timeSeriesData_] := Module[{
 },
   timestamps = Map[#["day"]&, timeSeriesData];
   zeroes = ConstantArray[0., Length[timeSeriesData]];
-  cumMild = Map[#["cumulativeMildOrAsymptomatic"]["expected"]&, timeSeriesData],
+  cumMild = Map[#["cumulativeMildOrAsymptomatic"]["expected"]&, timeSeriesData];
   cumSARI = Map[#["cumulativeHospitalized"]["expected"]&, timeSeriesData];
   cumCritical = Map[#["cumulativeCritical"]["expected"]&, timeSeriesData];
   metrics = <|
@@ -174,19 +174,21 @@ translateOutput[modelInput_, stateCode_, timeSeriesData_] := Module[{
     "cumCritRecov" -> zeroes,
     "cumDeath" -> Map[#["cumulativeDeaths"]["expected"]&, timeSeriesData]
   |>;
+  region = <|
+    "iso_country" -> "US",
+    "iso_sub" -> "US-" <> stateCode,
+    "region_id" -> "US-" <> stateCode,
+    "metrics" -> metrics
+  |>;
   modelOutput = <|
     "metadata" -> modelInput,
     "time" -> <|
       "t0" -> DateString["2020-01-01", "ISODate"],
       "timestamps" -> timestamps,
-      "extent" -> {First[timestamps], Last[timestamps]},
-      "regions" -> <|
-        "iso_country" -> "US",
-        "iso_sub" -> "US-" <> stateCode,
-        "region_id" -> "US-" <> stateCode,
-        "metrics" -> metrics
-      |>
-    |>
+      "extent" -> {First[timestamps], Last[timestamps]}
+    |>,
+    "regions" -> {region},
+    "aggregate" -> region
   |>;
   modelOutput
 ];
