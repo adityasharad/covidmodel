@@ -146,21 +146,13 @@ translateOutput[modelInput_, stateCode_, timeSeriesData_] := Module[{
   modelOutput
 },
   timestamps = Map[#["day"]&, timeSeriesData];
-  (* TODO: Revisit how mild/ILI are calculated
-  when the model exposes these counts separately. *)
   zeroes = ConstantArray[0., Length[timeSeriesData]];
-  cumMild = Map[#["cumulativeExposed"]["expected"]&, timeSeriesData];
+  cumMild = Map[#["cumulativeMildOrAsymptomatic"]["expected"]&, timeSeriesData],
   cumSARI = Map[#["cumulativeHospitalized"]["expected"]&, timeSeriesData];
   cumCritical = Map[#["cumulativeCritical"]["expected"]&, timeSeriesData];
   metrics = <|
-    "Mild" -> Map[
-      (
-        #["currentlyInfected"]["expected"]
-        + #["currentlyInfectious"]["expected"]
-        - #["currentlyHospitalizedOrICU"]["expected"]
-      )&,
-      timeSeriesData
-    ],
+    "Mild" -> Map[#["currentlyMildOrAsymptomatic"]["expected"]&, timeSeriesData],
+    (* Included in mild. *)
     "ILI" -> zeroes,
     "SARI" -> Map[#["currentlyHospitalized"]["expected"]&, timeSeriesData],
     "Critical" -> Map[#["currentlyCritical"]["expected"]&, timeSeriesData],
