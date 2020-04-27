@@ -126,6 +126,12 @@ translateInput[modelInput_]:=Module[{
   }
 ];
 
+cumulativeToPointwise[cumulativeValues_] := If[
+  Length[cumulativeValues] == 0],
+  cumulativeValues,
+  Prepend[Differences[cumulativeValues], cumulativeValues[[1]]]
+];
+
 (*
 Translates time series data produced by GenerateModelExport
 into GitHub unified UI output JSON (`ModelOutput`).
@@ -133,10 +139,49 @@ into GitHub unified UI output JSON (`ModelOutput`).
 translateOutput[modelInput_, stateCode_, timeSeriesData_] := Module[{
   timestamps,
   metrics,
+  zeroes,
+  cumMild,
+  cumSARI,
+  cumCritical,
   modelOutput
 },
   timestamps = Map[#["day"]&, timeSeriesData];
-  metrics = {};
+  (* TODO: Revisit how mild/ILI are calculated
+  when the model exposes these counts separately. *)
+  zeroes = ConstantArray[0., Length[timeSeriesData]];
+  cumMild = Map[#["cumulativeExposed"]["expected"]&, timeSeriesData];
+  cumSARI = Map[#["cumulativeHospitalized"]["expected"]&, timeSeriesData];
+  cumCritical = Map[#["cumulativeCritical"]["expected"]&, timeSeriesData];
+  metrics = <|
+    "Mild" -> Map[
+      (
+        #["currentlyInfected"]["expected"]
+        + #["currentlyInfectious"]["expected"]
+        - #["currentlyHospitalizedOrICU"]["expected"]
+      )&,
+      timeSeriesData
+    ],
+    "ILI" -> zeroes,
+    "SARI" -> Map[#["currentlyHospitalized"]["expected"]&, timeSeriesData],
+    "Critical" -> Map[#["currentlyCritical"]["expected"]&, timeSeriesData],
+    (* Cases going from critical back to severe.
+    Not measured separately by this model, so supply zero. *)
+    "CritRecov" -> zeroes,
+    "incMild" -> cumulativeToPointwise[cumMild],
+    "incILI" -> zeroes,
+    "incSARI" -> cumulativeToPointwise[cumSARI],
+    "incCritical" -> cumulativeToPointwise[cumCritical],
+    "incDeath" -> Map[#["dailyDeath"]["expected"]&, timeSeriesData],
+    (* See CritRecov. *)
+    "incCritRecov" -> zeroes,
+    "cumMild" -> cumMild,
+    "cumILI" -> zeroes,
+    "cumSARI" -> cumSARI,
+    "cumCritical" -> cumCritical,
+    (* See CritRecov. *)
+    "cumCritRecov" -> zeroes,
+    "cumDeath" -> Map[#["cumulativeDeaths"]["expected"]&, timeSeriesData]
+  |>;
   modelOutput = <|
     "metadata" -> modelInput,
     "time" -> <|
