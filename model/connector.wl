@@ -1,5 +1,8 @@
 (* ::Package:: *)
 
+(* Connector that translates between the model and the input/output schema
+used by the GitHub unified modelling UI. *)
+
 SetDirectory[$HomeDirectory<>"/github/covid-modelling/cosmc"];
 Import["model/data.wl"];
 
@@ -13,29 +16,27 @@ which states the number of days from 1 Jan 2020 to the given date
 (inclusive, starting at 0). *)
 translateDateIntoOffset[dateString_]:=Module[{
   start2020,
-  date,
-  dateOffset
+  date
 },
   start2020 = DateString["2020-01-01", "ISODate"];
   date=DateString[dateString, "ISODate"];
-  dateOffset = DayCount[start2020, date];
-  dateOffset
+  DayCount[start2020, date]
 ];
 
 translateInput[inputPath_]:=Module[{
   modelInput,
   stateCode,
   interventionPeriods,
+  interventionDistancingLevels,
   interventionStartDateOffsets,
   interventionEndDateOffsets,
-  interventionDistancingLevels,
   interventionDistancing,
   fullDistancing,
-  smoothedFullDistancing,
-  SlowJoin,
   smoothing,
-  distancingFunction,
+  SlowJoin,
   fullDays
+  smoothedFullDistancing,
+  distancingFunction
 },
   (* Read the JSON input to the model.
   Use RawJSON to obtain an association. (JSON gives a list of rules.) *)
@@ -112,34 +113,35 @@ translateInput[inputPath_]:=Module[{
   {
     <|
       "distancingDays"->fullDays,
-      (* Deliberately omitted: distancingLevel. TODO: Check if used, or relevant for multiple interventions. *)
+      (* Deliberately omitted: distancingLevel. *)
       "distancingData"->fullDistancing,
       "distancingFunction"->distancingFunction
-      (* Deliberately omitted: mostRecentDistancingDay *)
+      (* Deliberately omitted: mostRecentDistancingDay. *)
     |>,
     stateCode
   }
 ]
+Print["Translating input from unified UI"];
 {customDistancing, stateCode} = translateInput["model/data/inputFile.json"];
 Print["Length of distancingDays: ", Length[customDistancing["distancingDays"]]];
 Print["Length of distancingData: ", Length[customDistancing["distancingData"]]];
 Print["Will run model for state " <> stateCode];
-customScenario=<|"id"->"customScenario","name"->"Custom", "gradual"->False|>;
 
 (* We leave the existing scenarios so that param fitting can take place against them,
 but add a new scenario and distancing function that describes our input set of interventions.
-These are defined in the `data` package but used in the model initialisation.
+These are defined in the `data` package but used in `model`.
 So we modify them here, between the two imports.
 *)
-(* scenarios=Append[scenarios, customScenario]; *)
+customScenario=<|"id"->"customScenario","name"->"Custom", "gradual"->False|>;
 Print["Adding a custom scenario and distancing function to the precomputed data"];
+(* For simplicity, remove all other scenarios,
+except scenario1 which is needed for fitting.
+scenarios=Append[scenarios, customScenario]; *)
 scenarios={scenario1, customScenario};
-Print["Scenarios rewritten: ", scenarios];
 stateDistancingPrecompute[stateCode] = Append[
   stateDistancingPrecompute[stateCode],
   customScenario["id"] -> customDistancing
 ];
-
 
 (* Import the `model` package, but ensure it does not re-import the `data` package,
 since we have already imported from `data` and modified its global variables. *)
@@ -147,11 +149,10 @@ isDataImported = True
 Import["model/model.wl"];
 
 CreateDirectory["public/json/"<>stateCode<>"/"<>customScenario["id"]];
-Print["Scenarios after import of model.wl: ", scenarios];
-Print["Checking additional distancing data"];
+Print["Modified scenarios: ", scenarios];
 Print["Precomputed distancing keys: ", Keys[stateDistancingPrecompute[stateCode]]];
-Print["Precomputed distancing days: ", stateDistancingPrecompute[stateCode][customScenario["id"]]["distancingDays"]];
-Print["Precomputed distancing data: ", stateDistancingPrecompute[stateCode][customScenario["id"]]["distancingData"]];
+Print["Precomputed distancing days for custom scenario: ", stateDistancingPrecompute[stateCode][customScenario["id"]]["distancingDays"]];
+Print["Precomputed distancing data for custom scenario: ", stateDistancingPrecompute[stateCode][customScenario["id"]]["distancingData"]];
 
 Print["Running model"];
-GenerateModelExport[1, {stateCode}];
+GenerateModelExport[10, {stateCode}];
