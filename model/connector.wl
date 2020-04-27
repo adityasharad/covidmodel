@@ -23,8 +23,16 @@ translateDateIntoOffset[dateString_]:=Module[{
   DayCount[start2020, date]
 ];
 
-translateInput[inputPath_]:=Module[{
-  modelInput,
+(* Reads GitHub unified UI input JSON from the given file. *)
+readInputJson[inputPath_] := Import[inputPath, "RawJSON"]["configuration"];
+
+(*
+Translates GitHub unified UI `ModelInput` JSON into a pair of {distancing, stateCode}.
+Here `distancing` is a rule describing a distancing function,
+which can be placed in the `stateDistancingPrecomputed` structure,
+and `stateCode` is the ISO 2-letter code for the US state being run on.
+*)
+translateInput[modelInput_]:=Module[{
   stateCode,
   interventionPeriods,
   interventionDistancingLevels,
@@ -34,14 +42,10 @@ translateInput[inputPath_]:=Module[{
   fullDistancing,
   smoothing,
   SlowJoin,
-  fullDays
+  fullDays,
   smoothedFullDistancing,
   distancingFunction
 },
-  (* Read the JSON input to the model.
-  Use RawJSON to obtain an association. (JSON gives a list of rules.) *)
-  modelInput = Import[inputPath, "RawJSON"]["configuration"];
-
   (* Only US states are currently supported *)
   (* If[modelInput["region"] != "US", "US", Throw["Only US states are currently supported."]]; *)
   (* Drop the US- prefix *)
@@ -120,12 +124,42 @@ translateInput[inputPath_]:=Module[{
     |>,
     stateCode
   }
-]
+];
+
+(*
+Translates time series data produced by GenerateModelExport
+into GitHub unified UI output JSON (`ModelOutput`).
+*)
+translateOutput[modelInput_, stateCode_, timeSeriesData_] := Module[{
+  timestamps,
+  metrics,
+  modelOutput
+},
+  timestamps = Map[#["day"]&, timeSeriesData];
+  metrics = {};
+  modelOutput = <|
+    "metadata" -> modelInput,
+    "time" -> <|
+      "t0" -> DateString["2020-01-01", "ISODate"],
+      "timestamps" -> timestamps,
+      "extent" -> {First[timestamps], Last[timestamps]},
+      "regions" -> <|
+        "iso_country" -> "US",
+        "iso_sub" -> "US-" <> stateCode,
+        "region_id" -> "US-" <> stateCode,
+        "metrics" -> metrics
+      |>
+    |>
+  |>;
+  modelOutput
+];
+
 Print["Translating input from unified UI"];
-{customDistancing, stateCode} = translateInput["model/data/inputFile.json"];
+modelInput = readInputJson["model/data/inputFile.json"];
+{customDistancing, stateCode} = translateInput[modelInput];
 Print["Length of distancingDays: ", Length[customDistancing["distancingDays"]]];
 Print["Length of distancingData: ", Length[customDistancing["distancingData"]]];
-Print["Will run model for state " <> stateCode];
+Print["The model will be run for: " <> stateCode];
 
 (* We leave the existing scenarios so that param fitting can take place against them,
 but add a new scenario and distancing function that describes our input set of interventions.
@@ -145,14 +179,18 @@ stateDistancingPrecompute[stateCode] = Append[
 
 (* Import the `model` package, but ensure it does not re-import the `data` package,
 since we have already imported from `data` and modified its global variables. *)
+Print["Importing model"];
 isDataImported = True
 Import["model/model.wl"];
 
-CreateDirectory["public/json/"<>stateCode<>"/"<>customScenario["id"]];
-Print["Modified scenarios: ", scenarios];
-Print["Precomputed distancing keys: ", Keys[stateDistancingPrecompute[stateCode]]];
+Print["Modified list of scenarios: ", scenarios];
 Print["Precomputed distancing days for custom scenario: ", stateDistancingPrecompute[stateCode][customScenario["id"]]["distancingDays"]];
 Print["Precomputed distancing data for custom scenario: ", stateDistancingPrecompute[stateCode][customScenario["id"]]["distancingData"]];
 
 Print["Running model"];
-GenerateModelExport[10, {stateCode}];
+CreateDirectory["public/json/"<>stateCode<>"/"<>customScenario["id"]];
+data = GenerateModelExport[10, {stateCode}];
+Print["Translating model output for unified UI"];
+timeSeriesData = data[stateCode]["scenarios"][customScenario["id"]]["timeSeriesData"];
+modelOutput = translateOutput[modelInput, stateCode, timeSeriesData];
+Export["public/json/"<>stateCode<>"/"<>customScenario["id"]<>"/data.json", modelOutput];
