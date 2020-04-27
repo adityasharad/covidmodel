@@ -191,8 +191,20 @@ translateOutput[modelInput_, stateCode_, timeSeriesData_] := Module[{
   modelOutput
 ];
 
+(* Command-line arguments: <inputFile> <outputFile> *)
+(* Input file must exist, output file will be created. *)
+If[
+  Length[$ScriptCommandLine] < 3,
+  Throw["Expected 2 arguments:<inputFile> <outputFile>"]
+];
+(* Index 1 is this .wl file, so arguments start at 2. *)
+inputFile = $ScriptCommandLine[[2]];
+outputFile = $ScriptCommandLine[[3]];
+
+Print["Reading input from unified UI, stored at ", inputFile];
+modelInput = readInputJson[inputFile];
+
 Print["Translating input from unified UI"];
-modelInput = readInputJson["model/data/inputFile.json"];
 {customDistancing, stateCode} = translateInput[modelInput];
 Print["Length of distancingDays: ", Length[customDistancing["distancingDays"]]];
 Print["Length of distancingData: ", Length[customDistancing["distancingData"]]];
@@ -227,7 +239,10 @@ Print["Precomputed distancing data for custom scenario: ", stateDistancingPrecom
 Print["Running model"];
 CreateDirectory["public/json/"<>stateCode<>"/"<>customScenario["id"]];
 data = GenerateModelExport[10, {stateCode}];
-Print["Translating model output for unified UI"];
+
+Print["Translating output for unified UI"];
 timeSeriesData = data[stateCode]["scenarios"][customScenario["id"]]["timeSeriesData"];
 modelOutput = translateOutput[modelInput, stateCode, timeSeriesData];
-Export["public/json/"<>stateCode<>"/"<>customScenario["id"]<>"/data.json", modelOutput];
+
+Print["Writing output for unified UI to ", outputFile];
+Export[outputFile, modelOutput];
